@@ -16,6 +16,7 @@ use App\Models\Project;
 use App\Models\Blog;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class PortfolioController extends Controller
 {
@@ -40,7 +41,7 @@ class PortfolioController extends Controller
                     'message' => 'Profile not found',
                 ], 404);
             }
-
+            Log::info('this is the info0', ['res' => $user]);
             return response()->json([
                 'success' => true,
                 'data' => [

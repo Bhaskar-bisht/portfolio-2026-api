@@ -16,10 +16,47 @@ class ProjectController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $projects = Project::published()
+                ->with(['categories', 'technologies', 'features'])
+                ->orderBy('priority', 'asc')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($project) {
+                    return [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'slug' => $project->slug,
+                        'short_description' => $project->short_description,
+                        'full_description' => $project->full_description,
+                        'project_type' => $project->project_type,
+                        'status' => $project->status,
+                        'featured' => $project->featured,
+                        'client_name' => $project->client_name,
+                        'project_url' => $project->project_url,
+                        'github_url' => $project->github_url,
+                        'demo_url' => $project->demo_url,
+                        'started_at' => $project->started_at,
+                        'completed_at' => $project->completed_at,
+                        'team_size' => $project->team_size,
+                        'views_count' => $project->views_count,
+                        'likes_count' => $project->likes_count,
+                        'thumbnail' => $project->getFirstMediaUrl('thumbnail'),
+                        'banner' => $project->getFirstMediaUrl('banner'),
+                        'categories' => $project->categories->pluck('name'),
+                        'technologies' => $project->technologies->map(fn($tech) => [
+                            'id' => $tech->id,
+                            'name' => $tech->name,
+                            'usage_percentage' => $tech->pivot->usage_percentage,
+                            'role' => $tech->pivot->role,
+                        ]),
+                    ];
+                });
+
             return response()->json([
-                'msg' => 'this is the date'
-            ]);
-            // Your code here
+                'success' => true,
+                'message' => 'Projects fetched successfully',
+                'data' => $projects,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -28,6 +65,7 @@ class ProjectController extends Controller
             ], 500);
         }
     }
+// ...existing code...
 
     /**
      * Get featured projects
