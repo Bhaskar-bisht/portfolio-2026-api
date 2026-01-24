@@ -30,7 +30,8 @@ class ServiceController extends Controller
                     'pricing_type' => $service->pricing_type,
                     'starting_price' => $service->starting_price,
                     'delivery_time' => $service->delivery_time,
-                    'features' => $service->features,
+                    // 'features' => $service->features,
+                    'features' => json_decode($service->features, true) ?? [],
                     'is_featured' => $service->is_featured,
                 ];
             });

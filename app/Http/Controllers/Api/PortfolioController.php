@@ -101,7 +101,46 @@ class PortfolioController extends Controller
     public function getEducation(): JsonResponse
     {
         try {
-            // Your code here
+            // Get education records with media and order by display_order
+            $education = Education::with(['media' => function ($query) {
+                $query->whereIn('collection_name', ['institution_logo', 'certificate']);
+            }])
+                ->orderBy('display_order', 'asc')
+                ->get();
+
+            // Transform the data to include media URLs
+            $educationData = $education->map(function ($item) {
+                $logo = $item->getFirstMedia('institution_logo');
+                $certificate = $item->getFirstMedia('certificate');
+
+                return [
+                    'id' => $item->id,
+                    'user_id' => $item->user_id,
+                    'institution_name' => $item->institution_name,
+                    'degree' => $item->degree,
+                    'field_of_study' => $item->field_of_study,
+                    'grade' => $item->grade,
+                    'start_date' => $item->start_date ? $item->start_date->format('Y-m-d') : null,
+                    'end_date' => $item->end_date ? $item->end_date->format('Y-m-d') : null,
+                    'is_current' => $item->is_current,
+                    'description' => $item->description,
+                    'achievements' => $item->achievements,
+                    'location' => $item->location,
+                    'certificate_url' => $item->certificate_url,
+                    'display_order' => $item->display_order,
+                    'institution_logo_url' => $logo ? $logo->getUrl() : null,
+                    'certificate_file_url' => $certificate ? $certificate->getUrl() : null,
+                    'created_at' => $item->created_at->format('Y-m-d H:i:s'),
+                    'updated_at' => $item->updated_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Education data retrieved successfully',
+                'data' => $educationData,
+                'count' => $educationData->count(),
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -165,7 +204,15 @@ class PortfolioController extends Controller
     public function getSocialLinks(): JsonResponse
     {
         try {
-            // Your code here
+            // Get first user's social links (portfolio owner)
+            $socialLinks = SocialLink::where('is_active', true)
+                ->orderBy('display_order')
+                ->get(['id', 'platform', 'url', 'username', 'icon']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $socialLinks,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

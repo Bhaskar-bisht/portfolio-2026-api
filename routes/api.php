@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\SocialLinkController;
 
 // ============================================
 // PORTFOLIO OWNER (Main User) ROUTES
@@ -101,3 +102,5 @@ Route::get('/search', [PortfolioController::class, 'search']); // Global search
 // PUBLIC STATS (for homepage)
 // ============================================
 Route::get('/stats/overview', [PortfolioController::class, 'getOverviewStats']); // Total projects, blogs, etc.
+
+Route::get('/social-links', [SocialLinkController::class, 'index']);
