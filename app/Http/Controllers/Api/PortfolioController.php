@@ -23,13 +23,16 @@ class PortfolioController extends Controller
     /**
      * Get complete profile with all details
      */
+    /**
+     * Get complete profile with all details
+     */
     public function getProfile(): JsonResponse
     {
         try {
             $user = User::with([
-                'skills.technology',
+                'skills.technology', // Just load technology, media is handled by Spatie
                 'educations',
-                'experiences.technologies',
+                'experiences.technologies', // Same here
                 'certifications',
                 'achievements',
                 'socialLinks'
@@ -41,7 +44,29 @@ class PortfolioController extends Controller
                     'message' => 'Profile not found',
                 ], 404);
             }
-            Log::info('this is the info0', ['res' => $user]);
+
+            // Transform skills to include technology logo URL
+            $skillsWithLogos = $user->skills->map(function ($skill) {
+                $skillData = $skill->toArray();
+                if ($skill->technology) {
+                    $skillData['technology']['logo_url'] = $skill->technology->getFirstMediaUrl('logo');
+                }
+                return $skillData;
+            });
+
+            // Transform experiences to include technology logos
+            $experiencesWithLogos = $user->experiences->map(function ($experience) {
+                $experienceData = $experience->toArray();
+                $experienceData['technologies'] = $experience->technologies->map(function ($technology) {
+                    $techData = $technology->toArray();
+                    $techData['logo_url'] = $technology->getFirstMediaUrl('logo');
+                    return $techData;
+                });
+                return $experienceData;
+            });
+
+            Log::info('Profile data with media', ['skills' => $skillsWithLogos]);
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -62,9 +87,9 @@ class PortfolioController extends Controller
                     'dribbble_url' => $user->dribbble_url,
                     'avatar' => $user->getFirstMediaUrl('avatar'),
                     'resume' => $user->getFirstMediaUrl('resume'),
-                    'skills' => $user->skills,
+                    'skills' => $skillsWithLogos,
                     'education' => $user->educations,
-                    'experience' => $user->experiences,
+                    'experience' => $experiencesWithLogos,
                     'certifications' => $user->certifications,
                     'achievements' => $user->achievements,
                     'social_links' => $user->socialLinks,

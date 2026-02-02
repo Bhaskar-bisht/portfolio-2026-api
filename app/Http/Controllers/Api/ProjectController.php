@@ -16,7 +16,7 @@ class ProjectController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Project::with(['categories', 'technologies', 'testimonials'])
+            $query = Project::with(['categories', 'technologies', 'testimonials', 'media'])
                 ->published()
                 ->orderBy('priority', 'desc')
                 ->orderBy('created_at', 'desc');
@@ -54,6 +54,28 @@ class ProjectController extends Controller
 
             // Format response with media
             $projects->getCollection()->transform(function ($project) {
+                // Get thumbnail
+                $thumbnail = $project->getFirstMedia('thumbnail_image');
+                $thumbnailUrl = $thumbnail ? $thumbnail->getUrl() : null;
+
+                // Get banner
+                $banner = $project->getFirstMedia('banner_image');
+                $bannerUrl = $banner ? $banner->getUrl() : null;
+
+                // Get gallery images
+                $gallery = $project->getMedia('gallery_image')->map(function ($media) {
+                    return [
+                        'id' => $media->id,
+                        'url' => $media->getUrl(),
+                        'thumb' => $media->hasGeneratedConversion('thumb')
+                            ? $media->getUrl('thumb')
+                            : $media->getUrl(),
+                        'name' => $media->name,
+                        'file_name' => $media->file_name,
+                        'size' => $media->size,
+                    ];
+                });
+
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
@@ -71,9 +93,9 @@ class ProjectController extends Controller
                     'completed_at' => $project->completed_at?->format('Y-m-d'),
                     'views_count' => $project->views_count,
                     'likes_count' => $project->likes_count,
-                    'thumbnail' => $project->getFirstMediaUrl('thumbnail'),
-                    'banner' => $project->getFirstMediaUrl('banner'),
-                    'gallery' => $project->getMedia('gallery')->map(fn($media) => $media->getUrl()),
+                    'thumbnail' => $thumbnailUrl,
+                    'banner' => $bannerUrl,
+                    'gallery' => $gallery,
                     'categories' => $project->categories->map(function ($category) {
                         return [
                             'id' => $category->id,
@@ -83,12 +105,13 @@ class ProjectController extends Controller
                         ];
                     }),
                     'technologies' => $project->technologies->map(function ($tech) {
+                        $logo = $tech->getFirstMedia('logo');
                         return [
                             'id' => $tech->id,
                             'name' => $tech->name,
                             'slug' => $tech->slug,
                             'color_code' => $tech->color_code,
-                            'logo' => $tech->getFirstMediaUrl('logo'),
+                            'logo' => $logo ? $logo->getUrl() : null,
                         ];
                     }),
                     'created_at' => $project->created_at->format('Y-m-d H:i:s'),
@@ -120,7 +143,7 @@ class ProjectController extends Controller
     public function getFeatured(): JsonResponse
     {
         try {
-            $projects = Project::with(['categories', 'technologies'])
+            $projects = Project::with(['categories', 'technologies', 'media'])
                 ->published()
                 ->featured()
                 ->orderBy('priority', 'desc')
@@ -128,13 +151,15 @@ class ProjectController extends Controller
                 ->get();
 
             $formattedProjects = $projects->map(function ($project) {
+                $thumbnail = $project->getFirstMedia('thumbnail_image');
+
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
                     'slug' => $project->slug,
                     'short_description' => $project->short_description,
                     'project_type' => $project->project_type,
-                    'thumbnail' => $project->getFirstMediaUrl('thumbnail'),
+                    'thumbnail' => $thumbnail ? $thumbnail->getUrl() : null,
                     'categories' => $project->categories->pluck('name'),
                     'technologies' => $project->technologies->pluck('name'),
                 ];
@@ -165,7 +190,8 @@ class ProjectController extends Controller
                 'features',
                 'testimonials' => function ($query) {
                     $query->approved()->orderBy('display_order');
-                }
+                },
+                'media'
             ])
                 ->where('slug', $slug)
                 ->published()
@@ -173,6 +199,27 @@ class ProjectController extends Controller
 
             // Increment views
             $project->increment('views_count');
+
+            // Get thumbnail
+            $thumbnail = $project->getFirstMedia('thumbnail_image');
+            $thumbnailUrl = $thumbnail ? $thumbnail->getUrl() : null;
+
+            // Get banner
+            $banner = $project->getFirstMedia('banner_image');
+            $bannerUrl = $banner ? $banner->getUrl() : null;
+
+            // Get gallery with thumbnails
+            $gallery = $project->getMedia('gallery_image')->map(function ($media) {
+                return [
+                    'id' => $media->id,
+                    'url' => $media->getUrl(),
+                    'thumb' => $media->hasGeneratedConversion('thumb')
+                        ? $media->getUrl('thumb')
+                        : $media->getUrl(),
+                    'name' => $media->name,
+                    'file_name' => $media->file_name,
+                ];
+            });
 
             $data = [
                 'id' => $project->id,
@@ -187,24 +234,22 @@ class ProjectController extends Controller
                 'project_url' => $project->project_url,
                 'github_url' => $project->github_url,
                 'demo_url' => $project->demo_url,
-                'started_at' => $project->started_at?->format('Y-m-d'),
-                'completed_at' => $project->completed_at?->format('Y-m-d'),
+                'started_at' => $project->started_at?->format('d-M-Y'),
+                'completed_at' => $project->completed_at?->format('d-M-Y'),
                 'budget_range' => $project->budget_range,
                 'team_size' => $project->team_size,
                 'views_count' => $project->views_count,
                 'likes_count' => $project->likes_count,
-                'thumbnail' => $project->getFirstMediaUrl('thumbnail'),
-                'banner' => $project->getFirstMediaUrl('banner'),
-                'gallery' => $project->getMedia('gallery')->map(fn($media) => [
-                    'url' => $media->getUrl(),
-                    'thumb' => $media->getUrl('thumb'),
-                ]),
+                'thumbnail' => $thumbnailUrl,
+                'banner' => $bannerUrl,
+                'gallery' => $gallery,
                 'categories' => $project->categories,
                 'technologies' => $project->technologies->map(function ($tech) {
+                    $logo = $tech->getFirstMedia('logo');
                     return [
                         'name' => $tech->name,
                         'slug' => $tech->slug,
-                        'logo' => $tech->getFirstMediaUrl('logo'),
+                        'logo' => $logo ? $logo->getUrl() : null,
                         'usage_percentage' => $tech->pivot->usage_percentage,
                         'role' => $tech->pivot->role,
                     ];
@@ -217,13 +262,14 @@ class ProjectController extends Controller
                     ];
                 }),
                 'testimonials' => $project->testimonials->map(function ($testimonial) {
+                    $avatar = $testimonial->getFirstMedia('avatar');
                     return [
                         'name' => $testimonial->name,
                         'position' => $testimonial->position,
                         'company' => $testimonial->company,
                         'content' => $testimonial->content,
                         'rating' => $testimonial->rating,
-                        'avatar' => $testimonial->getFirstMediaUrl('avatar'),
+                        'avatar' => $avatar ? $avatar->getUrl() : null,
                     ];
                 }),
             ];
@@ -251,7 +297,7 @@ class ProjectController extends Controller
 
             $categoryIds = $project->categories->pluck('id');
 
-            $relatedProjects = Project::with(['categories', 'technologies'])
+            $relatedProjects = Project::with(['categories', 'technologies', 'media'])
                 ->published()
                 ->where('id', '!=', $project->id)
                 ->where(function ($query) use ($categoryIds) {
@@ -264,12 +310,14 @@ class ProjectController extends Controller
                 ->get();
 
             $formattedProjects = $relatedProjects->map(function ($project) {
+                $thumbnail = $project->getFirstMedia('thumbnail_image');
+
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
                     'slug' => $project->slug,
                     'short_description' => $project->short_description,
-                    'thumbnail' => $project->getFirstMediaUrl('thumbnail'),
+                    'thumbnail' => $thumbnail ? $thumbnail->getUrl() : null,
                     'categories' => $project->categories->pluck('name'),
                 ];
             });
@@ -293,18 +341,21 @@ class ProjectController extends Controller
     public function getCategories(): JsonResponse
     {
         try {
-            $categories = Category::active()
+            $categories = Category::with('media')
+                ->active()
                 ->withCount('projects')
                 ->orderBy('display_order')
                 ->get();
 
             $formattedCategories = $categories->map(function ($category) {
+                $icon = $category->getFirstMedia('icon');
+
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'description' => $category->description,
-                    'icon' => $category->getFirstMediaUrl('icon'),
+                    'icon' => $icon ? $icon->getUrl() : null,
                     'color_code' => $category->color_code,
                     'projects_count' => $category->projects_count,
                 ];
@@ -331,7 +382,7 @@ class ProjectController extends Controller
         try {
             $category = Category::where('slug', $slug)->firstOrFail();
 
-            $projects = Project::with(['categories', 'technologies'])
+            $projects = Project::with(['categories', 'technologies', 'media'])
                 ->published()
                 ->whereHas('categories', function ($query) use ($category) {
                     $query->where('categories.id', $category->id);
@@ -340,12 +391,14 @@ class ProjectController extends Controller
                 ->paginate(12);
 
             $projects->getCollection()->transform(function ($project) {
+                $thumbnail = $project->getFirstMedia('thumbnail_image');
+
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
                     'slug' => $project->slug,
                     'short_description' => $project->short_description,
-                    'thumbnail' => $project->getFirstMediaUrl('thumbnail'),
+                    'thumbnail' => $thumbnail ? $thumbnail->getUrl() : null,
                     'technologies' => $project->technologies->pluck('name'),
                 ];
             });

@@ -58,16 +58,34 @@ class Project extends Model implements HasMedia
     // Media Collections
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('thumbnail')
+        $this->addMediaCollection('thumbnail_image')
             ->singleFile()
-            ->useDisk('public');
+            ->useDisk('public')
+            ->registerMediaConversions(function () {
+                $this->addMediaConversion('thumb')
+                    ->width(400)
+                    ->height(300)
+                    ->sharpen(10);
+            });
 
-        $this->addMediaCollection('banner')
+        $this->addMediaCollection('banner_image')
             ->singleFile()
-            ->useDisk('public');
+            ->useDisk('public')
+            ->registerMediaConversions(function () {
+                $this->addMediaConversion('banner-thumb')
+                    ->width(1200)
+                    ->height(600)
+                    ->sharpen(10);
+            });
 
-        $this->addMediaCollection('gallery')
-            ->useDisk('public');
+        $this->addMediaCollection('gallery_image')
+            ->useDisk('public')
+            ->registerMediaConversions(function () {
+                $this->addMediaConversion('thumb')
+                    ->width(600)
+                    ->height(400)
+                    ->sharpen(10);
+            });
     }
 
     // Relations

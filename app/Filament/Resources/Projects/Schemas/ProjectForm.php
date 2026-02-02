@@ -45,29 +45,38 @@ class ProjectForm
                     ->required(),
                 Toggle::make('featured')
                     ->required(),
+
+                // ✅ FIX 1: Collection name 'thumbnail_image' rakho (model ke saath match)
                 SpatieMediaLibraryFileUpload::make('thumbnail_image')
+                    ->collection('thumbnail_image') // Yeh line add karo
                     ->preserveFilenames()
                     ->image()
+                    ->openable()
                     ->previewable(true)
                     ->downloadable()
                     ->multiple()
                     ->responsiveImages(),
+
+                // ✅ FIX 2: Collection name 'banner_image' rakho (model ke saath match)
                 SpatieMediaLibraryFileUpload::make('banner_image')
-                    ->collection('banner')
+                    ->collection('banner_image') // 'banner' se change karo 'banner_image'
                     ->preserveFilenames()
                     ->image()
                     ->previewable(true)
                     ->downloadable()
                     ->multiple()
                     ->responsiveImages(),
+
+                // ✅ FIX 3: Collection name 'gallery_image' rakho (model ke saath match)
                 SpatieMediaLibraryFileUpload::make('gallery_image')
-                    ->collection('gallery')
+                    ->collection('gallery_image') // 'gallery' se change karo 'gallery_image'
                     ->preserveFilenames()
                     ->image()
                     ->previewable(true)
                     ->downloadable()
                     ->multiple()
                     ->responsiveImages(),
+
                 TextInput::make('priority')
                     ->required()
                     ->numeric()
