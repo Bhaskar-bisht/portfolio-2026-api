@@ -12,12 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [
-            \Illuminate\Http\Middleware\HandleCors::class,
+        // Custom CORS middleware dono web aur API ke liye
+        $middleware->web(prepend: [
+            \App\Http\Middleware\Cors::class,
         ]);
 
         $middleware->api(prepend: [
-            \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\Cors::class,
         ]);
 
         // Disable CSRF for API routes
